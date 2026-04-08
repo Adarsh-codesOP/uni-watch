@@ -1,0 +1,27 @@
+# Virtual environment
+.venv/
+
+# Env files
+.env
+
+# Logs
+*.log
+
+# Lock files (optional if you don’t want them)
+uv.lock
+
+# Data / dumps / HAR files
+*.har
+*.json
+*.txt
+
+# OS / misc
+.DS_Store
+Thumbs.db
+
+# Ignore everything by default (optional strict mode)
+# *
+# !vtu_auto_progress.py
+# !pyproject.toml
+# !README.md
+# !.gitignore
