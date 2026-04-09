@@ -43,7 +43,7 @@ console = Console()
 
 # Logging
 log_formatter = logging.Formatter("%(asctime)s | %(levelname)s | %(message)s")
-logger = logging.getLogger("vtu_automater")
+logger = logging.getLogger("uni_watch")
 logger.setLevel(logging.DEBUG)
 
 file_handler = logging.FileHandler("api_responses.log", "w", encoding="utf-8")
@@ -71,7 +71,7 @@ LOGO = f"""\
 [bold {C}]╚═╝     ╚═╝  ╚═╝ ╚═════╝  ╚═════╝ ╚═╝  ╚═╝╚══════╝╚══════╝╚══════╝[/]"""
 
 SUBTITLE = (
-    f"[bold {P}]Auto-Progress Bypasser[/]  "
+    f"[bold {P}]Uni Watch Auto-Progress[/]  "
     f"[{DIM}]v0.1.78  •  Fast  •  Parallel  •  Smart[/]"
 )
 
@@ -83,7 +83,7 @@ def phase_rule(icon, title, color=S):
     console.print()
 
 
-class VTUBypasser:
+class UniWatchBypasser:
     def __init__(self, email, password):
         self.email = email
         self.password = password
@@ -313,7 +313,7 @@ def select_workers():
     console.print(
         f"  [bold {A}]⚠  Risk Warning:[/]\n"
         f"  [{DIM}]Workers process videos simultaneously. More workers = faster completion.\n"
-        f"  However, using many workers might look unnatural to the VTU servers.\n"
+        f"  However, using many workers might look unnatural to the portal servers.\n"
         f"  You can choose a maximum of 3 workers for account safety.[/]\n"
     )
     worker_str = Prompt.ask(
@@ -395,7 +395,7 @@ def view_logs():
 
 
 def main():
-    parser = argparse.ArgumentParser(description="VTU Online Video Automation CLI")
+    parser = argparse.ArgumentParser(description="Online Video Automation CLI")
     parser.add_argument(
         "--log", action="store_true", help="View recent API response logs"
     )
@@ -421,13 +421,15 @@ def main():
 
     # ── Phase 1: Authentication ───────────────────────
     phase_rule("🔐", "Authentication")
+    
+    console.print(f"  [{DIM}]* Login constitutes agreement to LICENSE & T&C (Zero liability)[/]\n")
 
     email = Prompt.ask(f"  [bold {C}]✉[/]  [bold]Email[/]")
     password = Prompt.ask(f"  [bold {C}]🔑[/] [bold]Password[/]", password=True)
 
     console.print()
 
-    bypasser = VTUBypasser(email, password)
+    bypasser = UniWatchBypasser(email, password)
 
     with console.status(
         f"  [{A}]Authenticating securely…[/]", spinner="dots12"
@@ -697,7 +699,7 @@ def main():
         Panel(
             Align.center(
                 f"[bold {G}]🎉  All done![/]\n"
-                f"[{DIM}]Check the VTU portal to verify your progress.[/]"
+                f"[{DIM}]Check the online portal to verify your progress.[/]"
             ),
             border_style=G,
             box=box.DOUBLE,

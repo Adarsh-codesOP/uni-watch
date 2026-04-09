@@ -2,7 +2,11 @@ MIT License
 
 Copyright (c) 2026 Adarsh AS
 
-Disclaimer: This software is provided strictly for educational and research purposes only. The author assumes no liability or legal obligation whatsoever for any consequences resulting from the use of this software.
+EXTREME DISCLAIMER AND WAIVER OF LIABILITY: 
+This software is provided strictly for educational and research concept demonstration purposes. By executing, using, or accessing this software, you unequivocally agree to indemnify, defend, and hold harmless the author(s) from any and all legal claims, liabilities, academic penalties, damages, or violations of third-party Terms of Service. The author possesses ZERO liability and shall face no legal prosecution or obligation under any circumstances whatsoever. If you do not agree to unconditionally release the author from all legal liability, you are strictly prohibited from using this software.
+
+NON-AFFILIATION AND THIRD-PARTY SYSTEMS:
+This project is an independent, open-source educational tool. It is in no way affiliated with, authorized, maintained, sponsored, or endorsed by any university, educational institution, or software platform (including the VTU online portal). This software does not contain any proprietary code, does not bypass security encryption, and does not distribute copyrighted material. The author(s) merely publish educational code. The author(s) do not execute this code against third-party servers. All API requests are generated and executed locally by the end user on their own IP address and device. Consequently, the end user bears 100% of the legal burden for "unauthorized access," Terms of Service breaches, or tortious interference. No corporate entity or institution holds any legal ground to pursue the author(s) for the actions of end users.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

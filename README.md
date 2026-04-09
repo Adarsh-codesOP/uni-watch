@@ -1,6 +1,6 @@
-# VTU Auto-Progress Bypasser
+# Uni Watch
 
-A beautiful, fast, API-driven CLI tool to automate video progress completion on the VTU portal.
+A beautiful, fast, API-driven CLI tool to automate video progress completion on your online portal.
 
 ## Features
 - **API-Driven**: Completes hours of video in seconds by safely pinging the backend.
@@ -19,24 +19,24 @@ To install the tool **globally** so it is automatically added to your system's `
 
 ```bash
 # Recommended: Install using uv
-uv tool install vtu-auto
+uv tool install uni-watch
 
 # Alternative: Install using pipx
-pipx install vtu-auto
+pipx install uni-watch
 ```
 
-*(You can also use standard `pip install vtu-auto`, but ensuring your environment variables are configured correctly is easier with `uv`/`pipx`).*
+*(You can also use standard `pip install uni-watch`, but ensuring your environment variables are configured correctly is easier with `uv`/`pipx`).*
 
 ## Usage
 
 Simply run from any terminal:
 ```bash
-vtu-auto
+uni-watch
 ```
 
 To view underlying API HTTP response trace logs locally:
 ```bash
-vtu-auto --log
+uni-watch --log
 ```
 
 ---
