@@ -25,3 +25,6 @@ Thumbs.db
 # !pyproject.toml
 # !README.md
 # !.gitignore
+vtu_auto/__pycache__/__init__.cpython-314.pyc
+vtu_auto/__pycache__/cli.cpython-314.pyc
+vtu_auto.egg-info/PKG-INFO
