@@ -18,6 +18,65 @@ A beautiful, fast, API-driven CLI tool to automate video progress completion on 
 
 ---
 
+## Quick Install (Automated)
+
+The fastest way to get started. These scripts automatically detect your system, install Python if needed, set up pipx, install Uni Watch, and launch it — all in one step.
+
+### Windows (PowerShell)
+
+**Option A — One-liner (easiest)**
+
+Open PowerShell and paste this single command:
+
+```powershell
+iex (irm https://raw.githubusercontent.com/Adarsh-codesOP/uni-watch/main/install.ps1)
+```
+
+
+
+**Option B — Download and run the script**
+
+```powershell
+powershell -ExecutionPolicy Bypass -File install.ps1
+```
+
+Or right-click `install.ps1` and select **"Run with PowerShell"**.
+
+What it does:
+- Detects your Windows version
+- Checks for Python 3.9+ and installs it via winget (or downloads the installer) if missing
+- Asks for your confirmation before installing anything
+- Installs pipx, then installs Uni Watch
+- Launches Uni Watch automatically
+
+### Linux / macOS (Bash)
+
+**Option A — One-liner (easiest)**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Adarsh-codesOP/uni-watch/main/install.sh | bash
+```
+
+
+
+**Option B — Download and run the script**
+
+```bash
+chmod +x install.sh
+./install.sh
+```
+
+What it does:
+- Detects your OS and Linux distro (Ubuntu, Fedora, Arch, etc.)
+- Checks for Python 3.9+ and installs it using your system package manager if missing
+- Asks for your confirmation before installing anything
+- Installs pipx, then installs Uni Watch
+- Launches Uni Watch automatically
+
+> **Note:** If Python is not installed, the script will ask before doing anything. You can always choose to install it yourself and re-run the script.
+
+---
+
 ## Installation (Recommended — Using `pip` + Virtual Environment)
 
 This is the best method for beginners to avoid conflicts and keep things clean.
