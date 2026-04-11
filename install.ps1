@@ -3,61 +3,38 @@
 #  Run with: powershell -ExecutionPolicy Bypass -File install.ps1
 # ─────────────────────────────────────────────────
 
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "SilentlyContinue"
 
-# ── Colours / Helpers ─────────────────────────────
-function Write-Info    { param($msg) Write-Host "[INFO]  $msg" -ForegroundColor Cyan }
-function Write-Ok      { param($msg) Write-Host "[OK]    $msg" -ForegroundColor Green }
-function Write-Warn    { param($msg) Write-Host "[WARN]  $msg" -ForegroundColor Yellow }
-function Write-Err     { param($msg) Write-Host "[ERROR] $msg" -ForegroundColor Red }
-function Write-Line    { Write-Host "──────────────────────────────────────────────" -ForegroundColor Cyan }
-function Write-Ask     { param($msg) Write-Host "[INPUT] $msg" -ForegroundColor Yellow }
+# ── Helpers ───────────────────────────────────────
+function Write-Info { param($msg) Write-Host "[INFO]  $msg" -ForegroundColor Cyan }
+function Write-Ok   { param($msg) Write-Host "[OK]    $msg" -ForegroundColor Green }
+function Write-Warn { param($msg) Write-Host "[WARN]  $msg" -ForegroundColor Yellow }
+function Write-Err  { param($msg) Write-Host "[ERROR] $msg" -ForegroundColor Red }
+function Write-Line { Write-Host "──────────────────────────────────────────────" -ForegroundColor Cyan }
+function Write-Ask  { param($msg) Write-Host "[INPUT] $msg" -ForegroundColor Yellow }
 
-# Adds a folder to the current session PATH (no duplicates)
-function Add-ToSessionPath {
-    param([string]$folder)
-    if ($folder -and (Test-Path $folder)) {
-        if ($env:Path -notlike "*$folder*") {
-            $env:Path = "$folder;$env:Path"
-            Write-Info "Added to session PATH: $folder"
-        }
+# Silently add a path to the current session (no duplicates)
+function Add-ToSessionPath([string]$folder) {
+    if ($folder -and (Test-Path $folder) -and ($env:Path -notlike "*$folder*")) {
+        $env:Path = "$folder;$env:Path"
     }
 }
 
-# Returns all Python Scripts directories for the current user
-function Get-PythonScriptsDirs {
-    $dirs = @()
-
-    # From where python.exe actually lives
-    foreach ($cmd in @("python", "python3", "py")) {
-        try {
-            $exe = (Get-Command $cmd -ErrorAction SilentlyContinue).Source
-            if ($exe) {
-                $dirs += (Join-Path (Split-Path $exe) "Scripts")
-                $dirs += (Join-Path (Split-Path $exe -Parent) "Scripts")
-            }
-        } catch {}
+# Permanently add a path to the user PATH in registry + session
+function Add-ToUserPath([string]$folder) {
+    if (-not $folder -or -not (Test-Path $folder)) { return }
+    $current = [System.Environment]::GetEnvironmentVariable("Path", "User")
+    if ($current -notlike "*$folder*") {
+        [System.Environment]::SetEnvironmentVariable(
+            "Path", "$current;$folder", "User")
+        Write-Ok "Permanently added to user PATH: $folder"
     }
-
-    # Roaming user Scripts folders (covers --user installs)
-    $roaming = $env:APPDATA
-    if ($roaming) {
-        Get-ChildItem "$roaming\Python" -ErrorAction SilentlyContinue |
-            ForEach-Object { $dirs += "$($_.FullName)\Scripts" }
-    }
-
-    # Local user Scripts folders
-    $localApp = $env:LOCALAPPDATA
-    if ($localApp) {
-        Get-ChildItem "$localApp\Programs\Python" -ErrorAction SilentlyContinue |
-            ForEach-Object { $dirs += "$($_.FullName)\Scripts" }
-    }
-
-    # pipx default bin dir
-    $dirs += "$env:USERPROFILE\.local\bin"
-
-    return $dirs | Select-Object -Unique
+    Add-ToSessionPath $folder
 }
+
+# ── Fix pipx paths — avoids the "space in path" warning ──
+$env:PIPX_HOME    = "$env:USERPROFILE\.pipx"
+$env:PIPX_BIN_DIR = "$env:USERPROFILE\.local\bin"
 
 # ── Banner ────────────────────────────────────────
 Clear-Host
@@ -67,36 +44,36 @@ Write-Host "         Sets up everything and launches the app" -ForegroundColor G
 Write-Line
 Write-Host ""
 
-# ── Step 1: Detect Windows ────────────────────────
+# ── Step 1: Detect OS ─────────────────────────────
 Write-Info "Detecting operating system..."
-$osInfo    = Get-CimInstance Win32_OperatingSystem
-$osCaption = $osInfo.Caption
-$osArch    = $osInfo.OSArchitecture
-Write-Ok "System detected: $osCaption ($osArch)"
+$os = Get-CimInstance Win32_OperatingSystem
+Write-Ok "System detected: $($os.Caption) ($($os.OSArchitecture))"
 Write-Host ""
 
-# ── Step 2: Check Python ──────────────────────────
+# ── Step 2: Find Python ───────────────────────────
 Write-Info "Checking for Python 3.9+..."
+
+# Reload PATH from registry first so anything already installed is visible
+$env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" +
+            [System.Environment]::GetEnvironmentVariable("Path","User")
 
 $pythonCmd = $null
 $pythonOk  = $false
 
 foreach ($cmd in @("python", "python3", "py")) {
-    try {
-        $ver = & $cmd --version 2>&1
-        if ($ver -match "Python (\d+)\.(\d+)") {
-            $major = [int]$Matches[1]
-            $minor = [int]$Matches[2]
-            if ($major -ge 3 -and $minor -ge 9) {
-                $pythonCmd = $cmd
-                $pythonOk  = $true
-                Write-Ok "Python $major.$minor found."
-                break
-            } else {
-                Write-Warn "Python $major.$minor found but 3.9+ is required."
-            }
+    $exe = (Get-Command $cmd -ErrorAction SilentlyContinue)?.Source
+    if (-not $exe) { continue }
+    $ver = & $exe --version 2>&1
+    if ($ver -match "Python (\d+)\.(\d+)") {
+        if ([int]$Matches[1] -ge 3 -and [int]$Matches[2] -ge 9) {
+            $pythonCmd = $exe          # store the full path, not just cmd name
+            $pythonOk  = $true
+            Write-Ok "Python $($Matches[1]).$($Matches[2]) found at: $exe"
+            break
+        } else {
+            Write-Warn "Python $($Matches[1]).$($Matches[2]) is below 3.9 — skipping."
         }
-    } catch {}
+    }
 }
 
 Write-Host ""
@@ -106,162 +83,207 @@ if (-not $pythonOk) {
     Write-Warn "Python 3.9+ was not found on your system."
     Write-Host ""
     Write-Ask "Would you like this script to install Python for you? (yes/no)"
-    $userChoice = Read-Host
+    $choice = Read-Host
     Write-Host ""
 
-    if ($userChoice -match "^[Yy](es?)?$") {
+    if ($choice -match "^[Yy](es?)?$") {
         Write-Info "Installing Python 3.11..."
 
-        $useWinget = $false
-        try { $null = & winget --version 2>&1; $useWinget = $true } catch {}
-
-        if ($useWinget) {
-            winget install --id Python.Python.3.11 `
-                --silent `
-                --accept-package-agreements `
-                --accept-source-agreements
+        $hasWinget = $null -ne (Get-Command winget -ErrorAction SilentlyContinue)
+        if ($hasWinget) {
+            winget install --id Python.Python.3.11 --silent `
+                --accept-package-agreements --accept-source-agreements
         } else {
-            Write-Info "winget not available. Downloading Python installer..."
-            $installerUrl  = "https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe"
-            $installerPath = "$env:TEMP\python_installer.exe"
-            Invoke-WebRequest -Uri $installerUrl -OutFile $installerPath -UseBasicParsing
-            Write-Info "Running Python installer (this may take a moment)..."
-            Start-Process -FilePath $installerPath `
+            $url  = "https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe"
+            $dest = "$env:TEMP\python_installer.exe"
+            Write-Info "Downloading Python installer..."
+            Invoke-WebRequest -Uri $url -OutFile $dest -UseBasicParsing
+            Start-Process -FilePath $dest `
                 -ArgumentList "/quiet InstallAllUsers=1 PrependPath=1 Include_test=0" `
                 -Wait
-            Remove-Item $installerPath -Force
+            Remove-Item $dest -Force
         }
 
-        # Reload system + user PATH
+        # Reload PATH after install
         $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" +
                     [System.Environment]::GetEnvironmentVariable("Path","User")
 
-        # Inject any new Python Scripts dirs
-        foreach ($d in (Get-PythonScriptsDirs)) { Add-ToSessionPath $d }
-
         foreach ($cmd in @("python", "py")) {
-            try {
-                $ver = & $cmd --version 2>&1
-                if ($ver -match "Python 3") {
-                    $pythonCmd = $cmd
-                    $pythonOk  = $true
-                    Write-Ok "Python installed successfully: $ver"
-                    break
-                }
-            } catch {}
+            $exe = (Get-Command $cmd -ErrorAction SilentlyContinue)?.Source
+            if (-not $exe) { continue }
+            $ver = & $exe --version 2>&1
+            if ($ver -match "Python 3") {
+                $pythonCmd = $exe
+                $pythonOk  = $true
+                Write-Ok "Python installed: $ver"
+                break
+            }
         }
 
         if (-not $pythonOk) {
-            Write-Err "Python installation failed or PATH was not updated."
-            Write-Err "Please restart this terminal and re-run the script."
-            Write-Err "Or install Python manually: https://www.python.org/downloads/"
+            Write-Err "Python install failed. Please install manually:"
+            Write-Err "  https://www.python.org/downloads/"
+            Write-Err "Then re-run this script."
             exit 1
         }
-
     } else {
-        Write-Host ""
-        Write-Warn "Python installation skipped."
-        Write-Info "Please install Python 3.9+ manually from:"
-        Write-Info "  https://www.python.org/downloads/"
-        Write-Info "Then re-run this script."
-        Write-Host ""
+        Write-Warn "Skipped. Install Python 3.9+ from https://www.python.org/downloads/ then re-run."
         exit 0
     }
 }
 
 Write-Host ""
 
-# ── Step 4: Inject all known Python Scripts dirs ──
-# Do this early so pip / pipx picked up by --user installs are found
-foreach ($d in (Get-PythonScriptsDirs)) { Add-ToSessionPath $d }
-
-# ── Step 5: Ensure pip is available ───────────────
+# ── Step 4: Ensure pip works ──────────────────────
 Write-Info "Checking pip..."
 
+# Collect all Python Scripts dirs for this user and inject them
+$scriptsDirs = @()
+
+# From the python exe location itself
+$pyDir = Split-Path $pythonCmd
+$scriptsDirs += $pyDir
+$scriptsDirs += (Join-Path $pyDir "Scripts")
+
+# Roaming user installs (e.g. Python314\Scripts)
+Get-ChildItem "$env:APPDATA\Python" -ErrorAction SilentlyContinue |
+    ForEach-Object { $scriptsDirs += "$($_.FullName)\Scripts" }
+
+# Local user installs
+Get-ChildItem "$env:LOCALAPPDATA\Programs\Python" -ErrorAction SilentlyContinue |
+    ForEach-Object { $scriptsDirs += "$($_.FullName)\Scripts" }
+
+# pipx bin dirs
+$scriptsDirs += "$env:USERPROFILE\.local\bin"
+$scriptsDirs += "$env:PIPX_BIN_DIR"
+
+foreach ($d in ($scriptsDirs | Select-Object -Unique)) {
+    Add-ToSessionPath $d
+}
+
+# Try pip in several ways
 $pipOk = $false
-try { $null = & $pythonCmd -m pip --version 2>&1; $pipOk = $true } catch {}
+foreach ($pipCmd in @("pip", "pip3", "pip.exe")) {
+    if (Get-Command $pipCmd -ErrorAction SilentlyContinue) {
+        $pipOk = $true
+        Write-Ok "pip found: $pipCmd"
+        break
+    }
+}
+
+# Also try via python -m pip
+if (-not $pipOk) {
+    $check = & $pythonCmd -m pip --version 2>&1
+    if ($LASTEXITCODE -eq 0) {
+        $pipOk = $true
+        Write-Ok "pip available via python -m pip"
+    }
+}
 
 if (-not $pipOk) {
-    Write-Warn "pip not found. Installing pip..."
-    $getPipPath = "$env:TEMP\get-pip.py"
-    Invoke-WebRequest -Uri "https://bootstrap.pypa.io/get-pip.py" `
-        -OutFile $getPipPath -UseBasicParsing
-    & $pythonCmd $getPipPath
-    Remove-Item $getPipPath -Force
-
-    # Re-inject Scripts dirs after pip install
-    foreach ($d in (Get-PythonScriptsDirs)) { Add-ToSessionPath $d }
+    Write-Warn "pip not found. Bootstrapping pip..."
+    $getPip = "$env:TEMP\get-pip.py"
+    Invoke-WebRequest -Uri "https://bootstrap.pypa.io/get-pip.py" -OutFile $getPip -UseBasicParsing
+    & $pythonCmd $getPip
+    Remove-Item $getPip -Force
+    foreach ($d in ($scriptsDirs | Select-Object -Unique)) { Add-ToSessionPath $d }
+    Write-Ok "pip installed."
 }
 
-Write-Ok "pip is available."
 Write-Host ""
 
-# ── Step 6: Install pipx ──────────────────────────
+# ── Step 5: Install pipx ──────────────────────────
 Write-Info "Installing pipx..."
 
-# Helper: find pipx.exe anywhere in known Scripts dirs
-function Find-Pipx {
-    foreach ($d in (Get-PythonScriptsDirs)) {
-        $candidate = Join-Path $d "pipx.exe"
-        if (Test-Path $candidate) { return $candidate }
-    }
-    # Also try plain command
-    $found = Get-Command pipx -ErrorAction SilentlyContinue
-    if ($found) { return $found.Source }
-    return $null
-}
+# Check if pipx is already usable
+$pipxExe = (Get-Command pipx -ErrorAction SilentlyContinue)?.Source
 
-$pipxExe = Find-Pipx
-
-if ($pipxExe) {
-    Write-Ok "pipx is already installed at: $pipxExe"
-} else {
-    # Install pipx
+if (-not $pipxExe) {
+    # Install via python -m pip (most reliable)
     & $pythonCmd -m pip install --quiet --upgrade pipx
 
-    # Re-inject Scripts dirs so the new pipx.exe is visible
-    foreach ($d in (Get-PythonScriptsDirs)) { Add-ToSessionPath $d }
+    # Re-inject all Scripts dirs
+    foreach ($d in ($scriptsDirs | Select-Object -Unique)) { Add-ToSessionPath $d }
 
-    # Run ensurepath via module (avoids needing pipx on PATH yet)
-    & $pythonCmd -m pipx ensurepath 2>&1 | Out-Null
+    # Run ensurepath via module (works even if pipx.exe not on PATH yet)
+    & $pythonCmd -m pipx ensurepath --force 2>&1 | Out-Null
 
-    # Re-inject once more after ensurepath
+    # Reload registry PATH + re-inject
     $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" +
                 [System.Environment]::GetEnvironmentVariable("Path","User")
-    foreach ($d in (Get-PythonScriptsDirs)) { Add-ToSessionPath $d }
+    foreach ($d in ($scriptsDirs | Select-Object -Unique)) { Add-ToSessionPath $d }
 
-    $pipxExe = Find-Pipx
-
-    if (-not $pipxExe) {
-        Write-Err "pipx was installed but could not be located."
-        Write-Err "Please close this terminal, open a new one, and run:"
-        Write-Err "  pipx install uni-watch"
-        exit 1
+    # Find pipx.exe by scanning all Scripts dirs
+    foreach ($d in ($scriptsDirs | Select-Object -Unique)) {
+        $candidate = Join-Path $d "pipx.exe"
+        if (Test-Path $candidate) { $pipxExe = $candidate; break }
     }
 
-    Write-Ok "pipx installed at: $pipxExe"
+    # Last resort: python -m pipx works even without pipx.exe on PATH
+    if (-not $pipxExe) {
+        Write-Warn "pipx.exe not found on PATH — will use 'python -m pipx' instead."
+        $pipxExe = $null   # handled below via $pipxCall
+    } else {
+        Write-Ok "pipx found at: $pipxExe"
+    }
+} else {
+    Write-Ok "pipx already installed at: $pipxExe"
 }
+
+# Build a callable for pipx that works regardless
+$pipxCall = if ($pipxExe) { { & $pipxExe @args } } `
+            else           { { & $pythonCmd -m pipx @args } }
 
 Write-Host ""
 
-# ── Step 7: Install Uni Watch ─────────────────────
+# ── Step 6: Install Uni Watch ─────────────────────
 Write-Info "Installing Uni Watch via pipx..."
 
-$pipxList = & $pipxExe list 2>&1
-if ($pipxList -match "uni-watch") {
-    Write-Warn "Uni Watch is already installed. Upgrading to latest version..."
-    try { & $pipxExe upgrade uni-watch } catch {}
+$listOut = & $pipxCall list 2>&1
+if ($listOut -match "uni-watch") {
+    Write-Warn "Already installed — upgrading..."
+    & $pipxCall upgrade uni-watch 2>&1 | Out-Null
 } else {
-    & $pipxExe install uni-watch
+    & $pipxCall install uni-watch
 }
 
-# Inject pipx bin dir so uni-watch command is found
-$pipxBin = & $pythonCmd -c "import pipx.constants; print(pipx.constants.LOCAL_BIN_DIR)" 2>&1
-if ($pipxBin -and (Test-Path $pipxBin)) {
-    Add-ToSessionPath $pipxBin
+# ── Step 7: Add uni-watch to PATH permanently ─────
+Write-Info "Adding uni-watch to user PATH..."
+
+# pipx puts binaries in PIPX_BIN_DIR
+$binDirs = @(
+    $env:PIPX_BIN_DIR,
+    "$env:USERPROFILE\.local\bin"
+)
+
+foreach ($d in $binDirs) {
+    if ($d -and (Test-Path $d)) {
+        $uniCandidate = Join-Path $d "uni-watch.exe"
+        if (Test-Path $uniCandidate) {
+            Add-ToUserPath $d
+            $uniExePath = $uniCandidate
+            break
+        }
+    }
 }
-# Also inject the standard fallback
-Add-ToSessionPath "$env:USERPROFILE\.local\bin"
+
+# Also scan all Scripts dirs as fallback
+if (-not $uniExePath) {
+    foreach ($d in ($scriptsDirs | Select-Object -Unique)) {
+        $candidate = Join-Path $d "uni-watch.exe"
+        if (Test-Path $candidate) {
+            Add-ToUserPath $d
+            $uniExePath = $candidate
+            break
+        }
+    }
+}
+
+if ($uniExePath) {
+    Write-Ok "uni-watch located at: $uniExePath"
+} else {
+    Write-Warn "uni-watch.exe not found yet — it may need a fresh terminal to appear on PATH."
+}
 
 Write-Ok "Uni Watch is ready."
 Write-Host ""
@@ -272,25 +294,14 @@ Write-Ok "Setup complete! Launching Uni Watch..."
 Write-Line
 Write-Host ""
 
-# Locate uni-watch.exe directly in case PATH still lags
-$uniExe = Get-Command uni-watch -ErrorAction SilentlyContinue
-if ($uniExe) {
-    & $uniExe.Source
+if ($uniExePath -and (Test-Path $uniExePath)) {
+    & $uniExePath
+} elseif (Get-Command uni-watch -ErrorAction SilentlyContinue) {
+    uni-watch
 } else {
-    # Fallback: search Scripts dirs
-    $found = $false
-    foreach ($d in (Get-PythonScriptsDirs)) {
-        $candidate = Join-Path $d "uni-watch.exe"
-        if (Test-Path $candidate) {
-            & $candidate
-            $found = $true
-            break
-        }
-    }
-    if (-not $found) {
-        Write-Err "Could not locate uni-watch executable."
-        Write-Err "Please open a new terminal and run: uni-watch"
-    }
+    Write-Err "Could not launch uni-watch automatically."
+    Write-Err "Please open a new terminal and run: uni-watch"
+    exit 1
 }
 
 Write-Host ""
