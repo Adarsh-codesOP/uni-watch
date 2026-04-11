@@ -2,44 +2,198 @@
 
 A beautiful, fast, API-driven CLI tool to automate video progress completion on your online portal.
 
+---
+
 ## Features
-- **API-Driven**: Completes hours of video in seconds by safely pinging the backend.
-- **Parallel Processing**: Runs up to 3 lectures simultaneously for maximum speed.
-- **Smart Skip**: Automatically skips lectures already marked complete — no wasted API calls.
-- **Network Recovery**: Detects connection drops, waits for reconnection, and resumes right where it left off.
-- **Retry Failed**: Offers to retry any lectures that failed at the end of the run.
-- **Course Selection**: Choose to auto-run all courses or pick specific ones from a menu.
-- **Summary Dashboard**: End-of-run report with total, skipped, completed, failed, and elapsed time.
-- **Beautiful UI**: Built with `rich` — gradient logo, styled tables, progress bars, and phase indicators.
-- **Secure**: Password input is hidden. No credentials are saved to disk.
 
-## Installation
+- **API-Driven** – Completes hours of video in seconds using backend APIs
+- **Parallel Processing** – Runs up to 3 lectures simultaneously
+- **Smart Skip** – Skips already completed lectures automatically
+- **Network Recovery** – Handles connection drops and resumes
+- **Retry Failed** – Retry failed lectures
+- **Course Selection** – Run all or selected courses
+- **Summary Dashboard** – Shows stats after execution
+- **Beautiful UI** – Built with `rich`
+- **Secure** – No credentials stored
 
-To install the tool **globally** so it is automatically added to your system's `PATH` and accessible from any folder, we recommend using `uv` or `pipx`:
+---
+
+## Installation (Recommended — Using `pip` + Virtual Environment)
+
+This is the best method for beginners to avoid conflicts and keep things clean.
+
+### Step-by-Step Setup
+
+**1. Install Python (if not installed)**
+
+Download from: https://www.python.org/downloads/
+
+During installation, check **"Add Python to PATH"**.
+
+**2. Create a project folder**
 
 ```bash
-# Recommended: Install using uv
-uv tool install uni-watch
-
-# Alternative: Install using pipx
-pipx install uni-watch
+mkdir uni-watch
+cd uni-watch
 ```
 
-*(You can also use standard `pip install uni-watch`, but ensuring your environment variables are configured correctly is easier with `uv`/`pipx`).*
+**3. Create a virtual environment**
 
-## Usage
+```bash
+python -m venv venv
+```
 
-Simply run from any terminal:
+**4. Activate the virtual environment**
+
+Windows:
+
+```bash
+venv\Scripts\activate
+```
+
+macOS / Linux:
+
+```bash
+source venv/bin/activate
+```
+
+You should now see `(venv)` in your terminal.
+
+**5. Upgrade pip (recommended)**
+
+```bash
+pip install --upgrade pip
+```
+
+**6. Install Uni Watch**
+
+```bash
+pip install uni-watch
+```
+
+**7. Run the tool**
+
 ```bash
 uni-watch
 ```
 
-To view underlying API HTTP response trace logs locally:
+**8. (Optional) Run with logs**
+
+```bash
+uni-watch --log
+```
+
+### To run again later
+
+```bash
+cd uni-watch
+venv\Scripts\activate      # Windows
+source venv/bin/activate   # macOS / Linux
+
+uni-watch
+```
+
+---
+
+## Alternative — Using `pipx` (Global Install)
+
+Use this if you want to run `uni-watch` from anywhere without managing a virtual environment manually.
+
+**1. Install pipx**
+
+```bash
+pip install pipx
+```
+
+**2. Add pipx to PATH**
+
+```bash
+pipx ensurepath
+```
+
+Restart your terminal after this step.
+
+**3. Install Uni Watch**
+
+```bash
+pipx install uni-watch
+```
+
+**4. Run**
+
+```bash
+uni-watch
+```
+
+---
+
+## Alternative — Using `uv` (Fastest and Modern)
+
+A faster alternative to pip/pipx.
+
+**1. Install uv**
+
+```bash
+pip install uv
+```
+
+Or using the official method:
+
+```bash
+curl -Ls https://astral.sh/uv/install.sh | sh
+```
+
+**2. Verify installation**
+
+```bash
+uv --version
+```
+
+**3. Install Uni Watch**
+
+```bash
+uv tool install uni-watch
+```
+
+**4. Run**
+
+```bash
+uni-watch
+```
+
+---
+
+## Usage
+
+Normal run:
+
+```bash
+uni-watch
+```
+
+Enable API logs:
+
 ```bash
 uni-watch --log
 ```
 
 ---
-<div align="center">
-  <sub><b>Terms & Conditions:</b> This software is provided strictly for educational purposes and concept demonstration. The authors do not condone or support Terms of Service violations. By using this tool, the user accepts full responsibility for their actions. The authors bear zero legal obligation or liability for any consequences (academic penalties, suspensions, etc.) resulting from the use of this software.</sub>
-</div>
+
+## Requirements
+
+- Python 3.9 or higher
+- Stable internet connection
+
+---
+
+## Disclaimer
+
+This software is provided strictly for educational purposes only. The authors do not support violating platform Terms of Service.
+
+By using this tool, you accept full responsibility for any consequences. The authors hold zero liability.
+
+---
+
+## Contributing
+
+Pull requests are welcome.
